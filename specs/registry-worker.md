@@ -4,6 +4,19 @@
 
 Build the Cloudflare Registry Worker with API endpoints for agent registration, search, and R2 tarball management.
 
+## Required Skills
+
+**MUST load before starting:**
+```bash
+skill name=cloudflare
+skill name=wrangler
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `cloudflare` | Build Cloudflare Workers with D1, R2, KV |
+| `wrangler` | Configure Workers, bindings, and deployments |
+
 ---
 
 ## Deliverables

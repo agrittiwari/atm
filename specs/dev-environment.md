@@ -4,6 +4,17 @@
 
 Create the local development "Swarm" setup with Tmux, wrangler dev, cloudflared tunnel, and multi-agent logging.
 
+## Required Skills
+
+**MUST load before starting:**
+```bash
+skill name=wrangler
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `wrangler` | Local development with `wrangler dev`, tunnel setup |
+
 ---
 
 ## Deliverables

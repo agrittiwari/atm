@@ -4,6 +4,19 @@
 
 Implement JWT authentication, rate limiting, WAF configuration, and the verified upvote system.
 
+## Required Skills
+
+**MUST load before starting:**
+```bash
+skill name=cloudflare
+skill name=wrangler
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `cloudflare` | WAF rules, Workers secrets, JWT validation |
+| `wrangler` | Configure rate limiting, secrets, environment |
+
 ---
 
 ## Deliverables

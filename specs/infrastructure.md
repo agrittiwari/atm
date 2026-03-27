@@ -4,6 +4,19 @@
 
 Design and implement the database schema and storage infrastructure for the ATM Registry.
 
+## Required Skills
+
+**MUST load before starting:**
+```bash
+skill name=d1-drizzle-schema
+skill name=wrangler
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `d1-drizzle-schema` | Generate D1 SQL schema with Drizzle ORM patterns |
+| `wrangler` | Configure R2 buckets and Workers settings |
+
 ---
 
 ## Deliverables

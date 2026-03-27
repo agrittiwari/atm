@@ -79,14 +79,39 @@ opencode --agent orchestrator --task 1 --spec SPEC.md
 
 The orchestrator reads this specification and uses the linked spec files in `specs/` directory to spin up dedicated sub-agents:
 
-| Task | Spec File | Sub-Agent Assignment |
-|------|-----------|---------------------|
-| 1 | [specs/infrastructure.md](./specs/infrastructure.md) | Agent 1: Infrastructure |
-| 2 | [specs/cli-framework.md](./specs/cli-framework.md) | Agent 2: CLI Framework |
-| 3 | [specs/registry-worker.md](./specs/registry-worker.md) | Agent 3: Registry Worker |
-| 4 | [specs/dynamic-runtime.md](./specs/dynamic-runtime.md) | Agent 4: Dynamic Runtime |
-| 5 | [specs/security.md](./specs/security.md) | Agent 5: Security System |
-| 6 | [specs/dev-environment.md](./specs/dev-environment.md) | Agent 6: Dev Environment |
+| Task | Spec File | Sub-Agent Assignment | Required Skill |
+|------|-----------|-----------------------|----------------|
+| 1 | [specs/infrastructure.md](./specs/infrastructure.md) | Agent 1: Infrastructure | `d1-drizzle-schema`, `wrangler` |
+| 2 | [specs/cli-framework.md](./specs/cli-framework.md) | Agent 2: CLI Framework | - |
+| 3 | [specs/registry-worker.md](./specs/registry-worker.md) | Agent 3: Registry Worker | `cloudflare`, `wrangler` |
+| 4 | [specs/dynamic-runtime.md](./specs/dynamic-runtime.md) | Agent 4: Dynamic Runtime | `workers-best-practices`, `cloudflare` |
+| 5 | [specs/security.md](./specs/security.md) | Agent 5: Security System | `cloudflare`, `wrangler` |
+| 6 | [specs/dev-environment.md](./specs/dev-environment.md) | Agent 6: Dev Environment | `wrangler` |
+
+### Skill Enforcement
+
+The Orchestrator **MUST** ensure each sub-agent loads the required skill before starting work:
+
+```bash
+# Load skill before task execution
+skill name=<skill-name>
+
+# Example for Infrastructure task:
+skill name=d1-drizzle-schema
+skill name=wrangler
+```
+
+**Available Skills Reference:**
+| Skill | Purpose |
+|-------|---------|
+| `cloudflare` | Cloudflare Workers, Pages, KV, R2, D1, AI |
+| `wrangler` | Wrangler CLI commands and configurations |
+| `workers-best-practices` | Production best practices for Workers |
+| `d1-drizzle-schema` | D1 database schema generation with Drizzle ORM |
+| `agents-sdk` | Building agents on Cloudflare Workers |
+| `find-skills` | Discover and install additional skills |
+
+See [rule.md](./rule.md) for full skill enforcement rules (Rule 11).
 
 ### Progress Tracking
 

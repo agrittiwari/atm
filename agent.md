@@ -28,6 +28,27 @@ The **Orchestrator Agent** is the central controller that manages project execut
 │  1. Read SPEC.md for project overview                          │
 │  2. Identify task list from roadmap                            │
 │  3. Check dependencies (topological sort)                     │
+│  4. Load required skills for Task N                            │
+│  5. Spin up Implementer Agent for Task N                       │
+│  6. Wait for completion                                         │
+│  7. Spin up Tester Agent to evaluate                            │
+│  8. If Fail: Loop to step 4 (with feedback)                   │
+│  9. If Pass: Mark complete, Move to next task                  │
+│ 10. Repeat until all tasks complete                            │
+│ 11. Request Human Review                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Skill Loading Step:**
+- Before spinning up any sub-agent, Orchestrator **MUST** load the required skill
+- Use: `skill name=<skill-name>`
+- See [rule.md](./rule.md) Rule 11 for skill requirements
+┌─────────────────────────────────────────────────────────────────┐
+│                      ORCHESTRATOR AGENT                        │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Read SPEC.md for project overview                          │
+│  2. Identify task list from roadmap                            │
+│  3. Check dependencies (topological sort)                     │
 │  4. Spin up Implementer Agent for Task N                       │
 │  5. Wait for completion                                         │
 │  6. Spin up Tester Agent to evaluate                            │
@@ -52,6 +73,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 **Progress File**: [progress/01-infrastructure.md](./progress/01-infrastructure.md)
 
+**Required Skills**: `d1-drizzle-schema`, `wrangler`
+
 **Enforced Rules**: [rule.md](./rule.md)
 
 ---
@@ -65,6 +88,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 **Linked Spec**: [specs/cli-framework.md](./specs/cli-framework.md)
 
 **Progress File**: [progress/02-cli-framework.md](./progress/02-cli-framework.md)
+
+**Required Skills**: None (pure Node.js/TypeScript)
 
 **Enforced Rules**: [rule.md](./rule.md)
 
@@ -80,6 +105,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 **Progress File**: [progress/03-registry-worker.md](./progress/03-registry-worker.md)
 
+**Required Skills**: `cloudflare`, `wrangler`
+
 **Enforced Rules**: [rule.md](./rule.md)
 
 ---
@@ -94,6 +121,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 **Progress File**: [progress/04-dynamic-runtime.md](./progress/04-dynamic-runtime.md)
 
+**Required Skills**: `workers-best-practices`, `cloudflare`
+
 **Enforced Rules**: [rule.md](./rule.md)
 
 ---
@@ -101,6 +130,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 ### Task Type 5: Security System
 
 **Implementer**: Implements JWT auth, rate limiting, WAF, verified upvotes
+
+**Required Skills**: `cloudflare`, `wrangler`
 
 **Tester**: Validates auth flow, rate limits enforced, security headers
 
@@ -115,6 +146,8 @@ The **Orchestrator Agent** is the central controller that manages project execut
 ### Task Type 6: Development Environment
 
 **Implementer**: Creates Tmux swarm, dev scripts, tunnel configuration
+
+**Required Skills**: `wrangler`
 
 **Tester**: Validates all windows start, tunnel works, logs display
 

@@ -84,6 +84,36 @@ These rules are **mandatory** for all sub-agents. Violation results in immediate
 
 ---
 
+## Rule 11: Use Available Skills
+
+- **MUST** check available OpenCode skills before starting work
+- **MUST** use relevant skill for the task type
+- **MUST** load skill using `skill` tool when available
+- **MUST** follow skill-specific best practices
+
+### Available Skills Mapping
+
+| Task | Skill to Use | When to Load |
+|------|--------------|--------------|
+| Infrastructure (D1/R2) | `d1-drizzle-schema` | Before creating database schema |
+| Infrastructure (CF) | `wrangler` | Before configuring Workers |
+| Registry Worker | `cloudflare` | Before building Worker |
+| Dynamic Runtime | `workers-best-practices` | Before implementing sandbox |
+| Security | `cloudflare` | Before configuring WAF |
+| Dev Environment | `wrangler` | Before setting up local dev |
+
+### How to Use Skills
+
+```bash
+# Load a skill before working
+skill name=<skill-name>
+
+# Example: Load d1-drizzle-schema skill for database work
+skill name=d1-drizzle-schema
+```
+
+---
+
 ## Progress Status Values
 
 | Status | Meaning |
@@ -115,10 +145,13 @@ Before Start:
   ✓ Read progress.md (root)
   ✓ Read rule.md (this file)
   ✓ Read specs/NAME.md (your spec)
+  ✓ Check available skills (Rule 11)
+  ✓ Load relevant skill for task
 
 During Work:
   ✓ Update progress/progress-NAME.md after each action
   ✓ Never communicate with other sub-agents
+  ✓ Use skill-specific best practices
 
 Before Complete:
   ✓ Run all validations
@@ -129,3 +162,21 @@ On Exit:
   ✓ Final progress update
   ✓ Clear summary of work done
 ```
+
+## Available Skills Reference
+
+The Orchestrator maintains a list of available OpenCode skills. Use the `skill` tool to load them.
+
+**System Skills:**
+| Skill | Purpose |
+|-------|---------|
+| `cloudflare` | Cloudflare Workers, Pages, KV, R2, D1, AI |
+| `wrangler` | Wrangler CLI commands |
+| `workers-best-practices` | Production best practices for Workers |
+| `d1-drizzle-schema` | D1 database schema generation |
+| `agents-sdk` | Building agents on Cloudflare Workers |
+| `agent-browser` | Browser automation |
+| `agent-device` | iOS/Android device automation |
+| `migrate-to-vinext` | Migrate Next.js to vinext |
+| `pdf-generator` | PDF creation and manipulation |
+| `find-skills` | Discover available skills |

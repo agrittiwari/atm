@@ -4,6 +4,19 @@
 
 Implement the Dynamic Worker Loading system that executes agents on-the-fly from R2 tarballs in isolated V8 sandboxes.
 
+## Required Skills
+
+**MUST load before starting:**
+```bash
+skill name=workers-best-practices
+skill name=cloudflare
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `workers-best-practices` | Implement secure V8 sandbox, isolate management |
+| `cloudflare` | Workers runtime, R2 integration, Dynamic Workers |
+
 ---
 
 ## Deliverables
