@@ -18,10 +18,50 @@ The **Orchestrator Agent** is the central controller that manages project execut
 4. **Quality Control**: Route work through evaluator agents
 5. **Reporting**: Communicate status to human prompter
 6. **Merge Approval**: Request human review when work passes evaluation
+7. **Multi-Agent Orchestration**: Coordinate Builder and Evaluator subagents working in parallel
 
-### Orchestration Flow
+### Multi-Agent Orchestration
+
+When **clarity is established** for subagents (meaning the task scope, requirements, and acceptance criteria are clearly defined), the Orchestrator spins up two parallel subagents:
+
+#### Builder Agent
+- Executes the implementation work for a given task
+- Works independently on their assigned subtask
+- Reports completion to Orchestrator only
+- Updates progress files autonomously
+
+#### Evaluator Agent
+- Validates the Builder's output against acceptance criteria
+- Works independently, not communicating with Builder
+- Reports pass/fail status to Orchestrator
+- Provides feedback for failures
+
+#### Orchestration Flow
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MULTI-AGENT ORCHESTRATION                    │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Read SPEC.md for project overview                          │
+│  2. Identify task list from roadmap                            │
+│  3. Check dependencies (topological sort)                     │
+│  4. For each task with clarity:                                │
+│     a. Load required skills                                   │
+│     b. Spin up BUILDER Agent (independent work)              │
+│     c. Spin up EVALUATOR Agent (parallel evaluation)          │
+│     d. Both agents work independently                          │
+│     e. Wait for both to report                                 │
+│  5. If Evaluator Pass: Mark task complete                      │
+│  6. If Evaluator Fail: Feedback to Builder, retry              │
+│  7. Continue to next task                                       │
+│  8. Request Human Review when all complete                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Skill Loading Step:**
+- Before spinning up any sub-agent, Orchestrator **MUST** load the required skill
+- Use: `skill name=<skill-name>`
+- See [rule.md](./rule.md) Rule 11 for skill requirements
 ┌─────────────────────────────────────────────────────────────────┐
 │                      ORCHESTRATOR AGENT                        │
 ├─────────────────────────────────────────────────────────────────┤
@@ -65,9 +105,9 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 1: Infrastructure
 
-**Implementer**: Builds D1 schema, R2 configuration, database migrations
+**Builder**: Builds D1 schema, R2 configuration, database migrations
 
-**Tester**: Validates schema correctness, migration success, R2 connectivity
+**Evaluator**: Validates schema correctness, migration success, R2 connectivity
 
 **Linked Spec**: [specs/infrastructure.md](./specs/infrastructure.md)
 
@@ -81,9 +121,9 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 2: CLI Framework
 
-**Implementer**: Creates oclif CLI, init command, templates, validation
+**Builder**: Creates oclif CLI, init command, templates, validation
 
-**Tester**: Validates CLI commands work, templates generate correctly
+**Evaluator**: Validates CLI commands work, templates generate correctly
 
 **Linked Spec**: [specs/cli-framework.md](./specs/cli-framework.md)
 
@@ -97,9 +137,9 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 3: Registry Worker
 
-**Implementer**: Builds Registry Worker, API endpoints, D1/R2 integration
+**Builder**: Builds Registry Worker, API endpoints, D1/R2 integration
 
-**Tester**: Validates API responses, data persistence, R2 operations
+**Evaluator**: Validates API responses, data persistence, R2 operations
 
 **Linked Spec**: [specs/registry-worker.md](./specs/registry-worker.md)
 
@@ -113,9 +153,9 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 4: Dynamic Runtime
 
-**Implementer**: Implements V8 sandbox, isolate management, code loading
+**Builder**: Implements V8 sandbox, isolate management, code loading
 
-**Tester**: Validates sandbox execution, isolate lifecycle, memory safety
+**Evaluator**: Validates sandbox execution, isolate lifecycle, memory safety
 
 **Linked Spec**: [specs/dynamic-runtime.md](./specs/dynamic-runtime.md)
 
@@ -129,11 +169,11 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 5: Security System
 
-**Implementer**: Implements JWT auth, rate limiting, WAF, verified upvotes
+**Builder**: Implements JWT auth, rate limiting, WAF, verified upvotes
 
 **Required Skills**: `cloudflare`, `wrangler`
 
-**Tester**: Validates auth flow, rate limits enforced, security headers
+**Evaluator**: Validates auth flow, rate limits enforced, security headers
 
 **Linked Spec**: [specs/security.md](./specs/security.md)
 
@@ -145,17 +185,50 @@ The **Orchestrator Agent** is the central controller that manages project execut
 
 ### Task Type 6: Development Environment
 
-**Implementer**: Creates Tmux swarm, dev scripts, tunnel configuration
+**Builder**: Creates Tmux swarm, dev scripts, tunnel configuration
 
 **Required Skills**: `wrangler`
 
-**Tester**: Validates all windows start, tunnel works, logs display
+**Evaluator**: Validates all windows start, tunnel works, logs display
 
 **Linked Spec**: [specs/dev-environment.md](./specs/dev-environment.md)
 
 **Progress File**: [progress/06-dev-environment.md](./progress/06-dev-environment.md)
 
 **Enforced Rules**: [rule.md](./rule.md)
+
+---
+
+## Multi-Agent Coordination Rules
+
+### When to Spawn Subagents
+
+The Orchestrator spawns Builder and Evaluator subagents when:
+1. **Clarity Established**: Task scope, requirements, and acceptance criteria are defined in spec
+2. **Dependencies Met**: All prerequisite tasks are complete
+3. **Resources Available**: Can handle parallel agent execution
+
+### Independent Operation
+
+- **Builder** works on implementation without waiting for Evaluator
+- **Evaluator** can start validation once Builder reports completion
+- **No direct communication** between Builder and Evaluator
+- Both report to Orchestrator only
+
+### Feedback Loop
+
+```
+Builder completes → Evaluator reviews → 
+  Pass → Task marked complete
+  Fail → Feedback sent to Builder → Builder fixes → Re-evaluate
+```
+
+### Parallel Execution
+
+For tasks with no dependencies, multiple Builder/Evaluator pairs can run in parallel:
+- Task 2 (CLI Framework) and Task 3 (Registry Worker) can execute simultaneously
+- Each pair operates independently
+- Orchestrator tracks all parallel executions
 
 ---
 
@@ -226,6 +299,17 @@ Each sub-agent must maintain progress in two locations:
 1. **Individual Progress File** (`progress/XX-task-name.md`) - Task-specific updates
 2. **Root Progress File** (`progress.md`) - Orchestrator's view of entire project
 
+### Multi-Agent Progress Tracking
+
+For each task, the Orchestrator tracks **two parallel progress streams**:
+
+| Subagent | Status Tracks | Updates When |
+|----------|---------------|--------------|
+| Builder | Implementation progress | Completes code, creates files |
+| Builder | Build completion | Finishes all implementation |
+| Evaluator | Evaluation progress | Running validations |
+| Evaluator | Evaluation result | Pass or Fail decision |
+
 ### Progress Files
 
 | Task | Individual Progress File | Root Entry |
@@ -242,9 +326,10 @@ Each sub-agent must maintain progress in two locations:
 | Status | Meaning | Valid Transitions |
 |--------|---------|-------------------|
 | `pending` | Task not yet started | → in_progress |
-| `in_progress` | Currently working | → evaluating, failed |
-| `evaluating` | Tester reviewing | → passed, failed |
-| `passed` | Tester approved | → complete |
+| `in_progress` | Builder working | → building, evaluating |
+| `building` | Builder completing work | → evaluating, failed |
+| `evaluating` | Evaluator reviewing | → passed, failed |
+| `passed` | Evaluator approved | → complete |
 | `failed` | Issues found | → in_progress |
 | `complete` | Human approved | - (terminal) |
 
@@ -262,19 +347,28 @@ Every sub-agent **MUST** follow this reporting protocol:
    - Read root `progress.md`
    - Check dependencies are met
 
-2. **During Work:**
+2. **Builder Agent - During Work:**
    - Update individual progress file after each significant action
    - Use exact timestamp format: `YYYY-MM-DD HH:MM:SS`
    - Include clear action descriptions
    - Never skip progress updates
 
-3. **After Completing Work:**
-   - Run validation against spec acceptance criteria
-   - Update status to `evaluating` (tester will take over)
+3. **Builder Agent - After Completing Work:**
+   - Run self-validation against spec acceptance criteria
+   - Update status to `evaluating` (Evaluator will take over)
    - Add summary to progress file
    - Report completion to Orchestrator
 
-4. **On Failure:**
+4. **Evaluator Agent - During Evaluation:**
+   - Read spec acceptance criteria
+   - Run validation tests
+   - Update status with evaluation results
+
+5. **Evaluator Agent - After Evaluation:**
+   - If Pass: Update status to `passed`, report to Orchestrator
+   - If Fail: Update status to `failed`, document issues, report to Orchestrator
+
+6. **On Failure:**
    - Update status to `failed`
    - Document failure reasons clearly
    - Specify what needs fixing
@@ -283,13 +377,23 @@ Every sub-agent **MUST** follow this reporting protocol:
 ### Progress Update Template
 
 ```markdown
-## Progress Log
+## Builder Progress Log
 
 | Timestamp | Action | Status | Details |
 |-----------|--------|--------|---------|
 | 2026-03-27 10:30:00 | Started work | in_progress | Implementing D1 schema |
 | 2026-03-27 10:45:00 | Completed agents table | in_progress | Created with all indexes |
-| 2026-03-27 11:00:00 | Ready for testing | evaluating | All tables created |
+| 2026-03-27 11:00:00 | Ready for evaluation | evaluating | All tables created |
+```
+
+```markdown
+## Evaluator Progress Log
+
+| Timestamp | Action | Status | Details |
+|-----------|--------|--------|---------|
+| 2026-03-27 11:05:00 | Started evaluation | evaluating | Checking schema validity |
+| 2026-03-27 11:15:00 | Validated migrations | evaluating | All migrations successful |
+| 2026-03-27 11:20:00 | Evaluation complete | passed | All criteria met |
 ```
 
 ### Root Progress Update
@@ -360,12 +464,24 @@ All sub-agents **MUST** read and follow: [rule.md](./rule.md)
 
 | Status | Meaning |
 |--------|---------|
-| `Task <N> Started` | Implementer has begun work |
-| `Task <N> Evaluating` | Tester is reviewing |
-| `Task <N> Passed` | Tester approved the work |
-| `Task <N> Failed - Retrying` | Tester found issues, implementer fixing |
+| `Task <N> Started` | Builder has begun work |
+| `Task <N> Building` | Builder is implementing |
+| `Task <N> Evaluating` | Evaluator is reviewing |
+| `Task <N> Passed` | Evaluator approved the work |
+| `Task <N> Failed - Retrying` | Evaluator found issues, Builder fixing |
 | `Task <N> Complete` | Passed and ready for merge |
 | `All Tasks Complete` | Project ready for human review |
+
+### Multi-Agent Status Messages
+
+| Status | Meaning |
+|--------|---------|
+| `Task <N> Builder: Started` | Builder agent spawned |
+| `Task <N> Builder: Complete` | Builder finished implementation |
+| `Task <N> Evaluator: Started` | Evaluator agent spawned |
+| `Task <N> Evaluator: Passed` | Evaluator approved |
+| `Task <N> Evaluator: Failed` | Evaluator found issues |
+| `Task <N> Retry: <N> attempts` | Retry count for failed task |
 
 ### Report Format
 
@@ -376,7 +492,9 @@ All sub-agents **MUST** read and follow: [rule.md](./rule.md)
 - [x] Task 1: Infrastructure (Passed)
 
 ### Current Tasks
-- [>] Task 2: CLI Framework (Evaluating...)
+- [>] Task 2: CLI Framework 
+    ├── Builder: Complete
+    └── Evaluator: Evaluating...
 
 ### Pending Tasks
 - [ ] Task 3: Registry Worker
@@ -385,7 +503,7 @@ All sub-agents **MUST** read and follow: [rule.md](./rule.md)
 - [ ] Task 6: Dev Environment
 
 ### Next Action
-Waiting for Tester 2 evaluation report...
+Waiting for Evaluator 2 evaluation report...
 ```
 
 ---
@@ -394,8 +512,17 @@ Waiting for Tester 2 evaluation report...
 
 1. **DO NOT** cross-communicate between sub-agents
 2. **DO NOT** work on other sub-agent's tasks
-3. **DO** report completion only when tested and approved
+3. **DO** report completion only when evaluated and approved
 4. **DO** escalate blockers to orchestrator immediately
+
+### Multi-Agent Communication Rules
+
+- **Builder → Evaluator**: No direct communication
+- **Evaluator → Builder**: No direct communication  
+- **Builder → Orchestrator**: Report completion, request evaluation
+- **Evaluator → Orchestrator**: Report pass/fail, provide feedback
+- **Orchestrator → Builder**: Send feedback on failure
+- **Orchestrator → Evaluator**: Trigger evaluation after Builder completes
 
 ---
 
