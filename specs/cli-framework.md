@@ -79,6 +79,109 @@ Create `packages/cli/templates/`:
 - `src/agent.ts` - OpenAI Assistant wrapper
 - `.env.example` - API key template
 
+### 5. README Generation
+
+Each template MUST generate a `README.md` with:
+
+#### Required Sections:
+1. **Architecture** - High-level overview of how the agent works
+2. **Stack** - Technologies used (framework, runtime, dependencies)
+3. **Contributing** - How to contribute to this agent project
+
+#### Template-Specific Content:
+
+**cloudflare template:**
+```markdown
+# {{agent-name}}
+
+{{description}}
+
+## Architecture
+
+This agent runs as a Cloudflare Worker and can be called via A2A protocol.
+
+## Stack
+
+- Cloudflare Workers
+- TypeScript
+
+## Contributing
+
+1. Edit \`src/index.ts\` to modify agent behavior
+2. Test locally: \`wrangler dev\`
+3. Deploy: \`wrangler deploy\`
+```
+
+**mastra template:**
+```markdown
+# {{agent-name}}
+
+{{description}}
+
+## Architecture
+
+This agent uses Mastra for AI workflow orchestration.
+
+## Stack
+
+- Mastra
+- Cloudflare Workers
+- TypeScript
+
+## Contributing
+
+1. Edit \`src/agent.ts\` to modify agent behavior
+2. Run locally: \`npm run dev\`
+3. Deploy: \`wrangler deploy\`
+```
+
+**langchain template:**
+```markdown
+# {{agent-name}}
+
+{{description}}
+
+## Architecture
+
+This agent uses LangChain for LLM-powered capabilities.
+
+## Stack
+
+- LangChain
+- Cloudflare Workers
+- TypeScript
+
+## Contributing
+
+1. Edit \`src/agent.ts\` to modify agent behavior
+2. Run locally: \`npm run dev\`
+3. Deploy: \`wrangler deploy\`
+```
+
+**openai template:**
+```markdown
+# {{agent-name}}
+
+{{description}}
+
+## Architecture
+
+This agent wraps an OpenAI Assistant for A2A communication.
+
+## Stack
+
+- OpenAI Assistants API
+- Cloudflare Workers
+- TypeScript
+
+## Contributing
+
+1. Edit \`src/agent.ts\` to modify agent behavior
+2. Add your OpenAI API key to \`.env\`
+3. Run locally: \`npm run dev\`
+4. Deploy: \`wrangler deploy\`
+```
+
 ### 5. Additional Commands (optional for future)
 
 - `atm publish` - Upload to Registry
@@ -95,6 +198,9 @@ Create `packages/cli/templates/`:
 - [ ] `--dynamic` flag sets runtime correctly
 - [ ] CLI installs dependencies successfully
 - [ ] Error messages are clear and helpful
+- [ ] README.md generated with Architecture section
+- [ ] README.md generated with Stack section
+- [ ] README.md generated with Contributing guide
 
 ---
 

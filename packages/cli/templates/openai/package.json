@@ -1,0 +1,12 @@
+{
+  "name": "atm-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/agent.ts",
+    "start": "node src/agent.ts"
+  },
+  "dependencies": {
+    "openai": "^4.28.0"
+  }
+}

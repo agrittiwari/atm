@@ -1,0 +1,12 @@
+{
+  "name": "atm-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "start": "mastra start"
+  },
+  "dependencies": {
+    "@mastra/core": "^0.1.0"
+  }
+}
