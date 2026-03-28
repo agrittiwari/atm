@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "atm-registry",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-27",
+  "compatibility_flags": ["nodejs_compat_v2"],
+
+  "r2_buckets": [
+    {
+      "binding": "AGENT_TARBALLS",
+      "bucket_name": "agent-tarballs"
+    }
+  ],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "atm-registry",
+      "database_id": "<DB_ID>",
+      "migrations_dir": "./migrations"
+    }
+  ],
+
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "<KV_NAMESPACE_ID>"
+    }
+  ],
+
+  "env": {
+    "production": {
+      "vars": {
+        "WAF_ENABLED": "true"
+      }
+    }
+  }
+}
