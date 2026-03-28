@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  local-stack:
+    image: cloudflare/workers-local
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./packages/registry:/app
+    env_file:
+      - .dev.vars
