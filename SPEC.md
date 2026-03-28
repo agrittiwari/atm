@@ -2,152 +2,6 @@
 
 ---
 
-## Agenda: Project Orchestration
-
-### Orchestrator Agent (Primary)
-
-The **Orchestrator Agent** is the central coordination unit that manages the entire project lifecycle.
-
-**Responsibilities:**
-- Spin up sub-agents for each task area
-- Assign work based on spec files in `specs/` directory
-- Coordinate parallel execution where possible
-- Report progress to human (prompter)
-- Request human review upon task completion
-- Handle cross-agent dependencies
-
-**Execution Flow:**
-```
-Human (Prompter) 
-    │
-    ▼
-Orchestrator Agent
-    │
-    ├──► Sub-Agent 1 (Implementer) ──► Tester Agent 1 (Evaluator)
-    │                                      │
-    │                                      ▼
-    │                               [Pass/Fail] ──► Report to Orchestrator
-    │
-    ├──► Sub-Agent 2 (Implementer) ──► Tester Agent 2 (Evaluator)
-    │                                      │
-    │                                      ▼
-    │                               [Pass/Fail] ──► Report to Orchestrator
-    │
-    └──► ... (continues for all sub-agents)
-              │
-              ▼
-         Human Review (Merge Approval)
-```
-
-### Sub-Agent Types
-
-| Type | Role | Responsibility |
-|------|------|----------------|
-| **Implementer** | Builder | Implements the task based on detailed spec |
-| **Tester/Evaluator** | Critic | Evaluates work against detailed spec |
-| **Orchestrator** | Coordinator | Delegates, tracks, reports, and manages flow |
-
-### Iteration Loop
-
-Each implementer-tester pair operates in a loop:
-1. **Implementer** completes work
-2. **Tester** evaluates against spec
-3. **Pass** → Report to Orchestrator
-4. **Fail** → Report issues back to Implementer
-5. Repeat steps 1-4 until Pass
-
-### Communication Rules
-
-- **NO cross-communication** between sub-agents
-- All communication flows through Orchestrator
-- Only report completion when tested and approved
-- Human review required for final merge
-
-### Execution Command
-
-To start the orchestrator and begin project execution:
-
-```bash
-# From project root
-opencode --agent orchestrator --spec SPEC.md
-
-# Or run specific task
-opencode --agent orchestrator --task 1 --spec SPEC.md
-```
-
-### Orchestrator Entry Point
-
-The orchestrator reads this specification and uses the linked spec files in `specs/` directory to spin up dedicated sub-agents:
-
-| Task | Spec File | Sub-Agent Assignment | Required Skill |
-|------|-----------|-----------------------|----------------|
-| 1 | [specs/infrastructure.md](./specs/infrastructure.md) | Agent 1: Infrastructure | `d1-drizzle-schema`, `wrangler` |
-| 2 | [specs/cli-framework.md](./specs/cli-framework.md) | Agent 2: CLI Framework | - |
-| 3 | [specs/registry-worker.md](./specs/registry-worker.md) | Agent 3: Registry Worker | `cloudflare`, `wrangler` |
-| 4 | [specs/dynamic-runtime.md](./specs/dynamic-runtime.md) | Agent 4: Dynamic Runtime | `workers-best-practices`, `cloudflare` |
-| 5 | [specs/security.md](./specs/security.md) | Agent 5: Security System | `cloudflare`, `wrangler` |
-| 6 | [specs/dev-environment.md](./specs/dev-environment.md) | Agent 6: Dev Environment | `wrangler` |
-
-### Skill Enforcement
-
-The Orchestrator **MUST** ensure each sub-agent loads the required skill before starting work:
-
-```bash
-# Load skill before task execution
-skill name=<skill-name>
-
-# Example for Infrastructure task:
-skill name=d1-drizzle-schema
-skill name=wrangler
-```
-
-**Available Skills Reference:**
-| Skill | Purpose |
-|-------|---------|
-| `cloudflare` | Cloudflare Workers, Pages, KV, R2, D1, AI |
-| `wrangler` | Wrangler CLI commands and configurations |
-| `workers-best-practices` | Production best practices for Workers |
-| `d1-drizzle-schema` | D1 database schema generation with Drizzle ORM |
-| `agents-sdk` | Building agents on Cloudflare Workers |
-| `find-skills` | Discover and install additional skills |
-
-See [rule.md](./rule.md) for full skill enforcement rules (Rule 11).
-
-### Progress Tracking
-
-Each task has an individual progress file that sub-agents **MUST** update:
-
-| Task | Progress File | Description |
-|------|---------------|-------------|
-| 1 | [progress/01-infrastructure.md](./progress/01-infrastructure.md) | Task 1 progress |
-| 2 | [progress/02-cli-framework.md](./progress/02-cli-framework.md) | Task 2 progress |
-| 3 | [progress/03-registry-worker.md](./progress/03-registry-worker.md) | Task 3 progress |
-| 4 | [progress/04-dynamic-runtime.md](./progress/04-dynamic-runtime.md) | Task 4 progress |
-| 5 | [progress/05-security.md](./progress/05-security.md) | Task 5 progress |
-| 6 | [progress/06-dev-environment.md](./progress/06-dev-environment.md) | Task 6 progress |
-
-**Root Progress:** [progress.md](./progress.md) - Orchestrator's view of entire project
-
-### Execution Rules
-
-All sub-agents **MUST** read and follow: [rule.md](./rule.md)
-
-This file contains 10 mandatory rules including:
-- No cross-communication between sub-agents
-- Read progress before starting
-- Update progress immediately
-- Test before reporting complete
-- Fail fast, report honest
-
-### Reporting Mechanism
-
-1. **Before Work:** Read `rule.md`, check `progress.md`, verify dependencies
-2. **During Work:** Update individual progress file after each action
-3. **After Work:** Update status to `evaluating`, report to Orchestrator
-4. **On Failure:** Update status to `failed`, document reasons, report immediately
-
----
-
 ## Project Overview
 
 ATM is a comprehensive ecosystem for managing AI agents across frameworks. It consists of:
@@ -156,157 +10,587 @@ ATM is a comprehensive ecosystem for managing AI agents across frameworks. It co
 
 ---
 
-## 1. ATM CLI Specification
+## Task Definitions
 
-### 1.1 Core Command: `atm init`
+### Task 1: Infrastructure
 
-Scaffolds a new agent project and generates the mandatory A2A Agent Card.
+**Builder**: Build D1 schema, R2 configuration, database migrations
 
-**Flags:**
-| Flag | Type | Description | Default |
-|------|------|-------------|---------|
-| `--name` | string | Unique identifier (e.g., `@user/weather-agent`) | Required |
-| `--template` | string | Base framework | `cloudflare` |
-| `--dynamic` | boolean | Enable "spin up on-the-fly" mode | `false` |
-| `--dir` | string | Target directory | Current directory |
+**Evaluator**: Validate schema correctness, migration success, R2 connectivity
 
-**Template Options:**
-- `cloudflare`: Standard CF Worker-based agent (default)
-- `mastra`: Optimized for Mastra workflows
-- `langchain`: Pre-configured for LangChain JS/TS
-- `openai`: Minimal wrapper for OpenAI Assistants
+**Depends On**: -
 
-### 1.2 The agent.json Manifest
+**Required Skills**: `d1-drizzle-schema`, `wrangler`
 
-The core contract between CLI and Registry.
+**Linked Spec**: [specs/infrastructure.md](./specs/infrastructure.md)
 
-```json
-{
-  "name": "@username/agent-name",
-  "version": "1.0.0",
-  "description": "Analyzes data via A2A",
-  "framework": "mastra",
-  "endpoint": "https://agent-url.workers.dev",
-  "capabilities": ["data-analysis", "report-generation"],
-  "auth": { "type": "bearer" },
-  "runtime": "dynamic"
-}
+**Progress File**: [progress/01-infrastructure.md](./progress/01-infrastructure.md)
+
+---
+
+### Task 2: CLI Framework
+
+**Builder**: Create ATM CLI with oclif, init command, templates, validation, README generation
+
+**Evaluator**: Validate CLI commands work, templates generate correctly, README includes architecture/stack/contributing
+
+**Depends On**: Task 1
+
+**Required Skills**: None (pure Node.js/TypeScript)
+
+**Linked Spec**: [specs/cli-framework.md](./specs/cli-framework.md)
+
+**Progress File**: [progress/02-cli-framework.md](./progress/02-cli-framework.md)
+
+---
+
+### Task 3: Registry Worker
+
+**Builder**: Build Registry Worker with API endpoints, D1/R2 integration
+
+**Evaluator**: Validate API responses, data persistence, R2 operations
+
+**Depends On**: Task 1
+
+**Required Skills**: `cloudflare`, `wrangler`
+
+**Linked Spec**: [specs/registry-worker.md](./specs/registry-worker.md)
+
+**Progress File**: [progress/03-registry-worker.md](./progress/03-registry-worker.md)
+
+---
+
+### Task 4: Dynamic Runtime
+
+**Builder**: Implement V8 sandbox, isolate management, code loading from R2
+
+**Evaluator**: Validate sandbox execution, isolate lifecycle, memory safety
+
+**Depends On**: Task 3
+
+**Required Skills**: `workers-best-practices`, `cloudflare`
+
+**Linked Spec**: [specs/dynamic-runtime.md](./specs/dynamic-runtime.md)
+
+**Progress File**: [progress/04-dynamic-runtime.md](./progress/04-dynamic-runtime.md)
+
+---
+
+### Task 5: Security System
+
+**Builder**: Implement JWT auth, rate limiting, WAF, verified upvotes
+
+**Evaluator**: Validate auth flow, rate limits enforced, security headers
+
+**Depends On**: Task 2, Task 3
+
+**Required Skills**: `cloudflare`, `wrangler`
+
+**Linked Spec**: [specs/security.md](./specs/security.md)
+
+**Progress File**: [progress/05-security.md](./progress/05-security.md)
+
+---
+
+### Task 6: Development Environment
+
+**Builder**: Create Tmux swarm, dev scripts, tunnel configuration
+
+**Evaluator**: Validate all windows start, tunnel works, logs display
+
+**Depends On**: All other tasks
+
+**Required Skills**: `wrangler`
+
+**Linked Spec**: [specs/dev-environment.md](./specs/dev-environment.md)
+
+**Progress File**: [progress/06-dev-environment.md](./progress/06-dev-environment.md)
+
+---
+
+## Sub-Agent Prompts
+
+### Task 1: Infrastructure
+
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 1: Infrastructure.
+
+## Your Mission
+Implement the database schema, R2 configuration, and migrations for the ATM Registry.
+
+## Required Files to Create
+
+### 1. D1 Schema (packages/db/schema.ts)
+Create a Drizzle ORM schema with:
+- `agents` - id, name, username, version, description, framework, endpoint, capabilities (JSON), auth_config (JSON), runtime, upvotes, verified, created_at, updated_at
+- `agent_capabilities` - for efficient capability searching
+- `upvotes` - with unique constraint on (agent_id, voter_id)
+
+Use D1-correct patterns:
+- UUID primary keys using $defaultFn(() => crypto.randomUUID())
+- Timestamps as Unix epoch milliseconds (integer)
+- Boolean stored as integer (0/1)
+
+### 2. R2 Configuration (wrangler.jsonc)
+Configure R2 bucket:
+- Binding: AGENT_TARBALLS
+- Bucket: agent-tarballs
+
+### 3. Migration Scripts (migrations/)
+Create idempotent SQL migrations
+
+## Acceptance Criteria
+- [ ] All D1 tables created with proper indexes
+- [ ] Schema supports millions of agents
+- [ ] Capabilities efficiently queryable
+- [ ] Upvotes prevent duplicate voting per user
+- [ ] R2 bucket configured for agent tarballs
+- [ ] Migration scripts are idempotent
+
+## Rules
+1. Read and follow rule.md
+2. Update progress/01-infrastructure.md after each action
+3. Use timestamp: YYYY-MM-DD HH:MM:SS
+4. Do not communicate with other agents
 ```
 
-**Schema Properties:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Globally unique agent identifier with `@username/` prefix |
-| `version` | string | Yes | Semantic versioning |
-| `description` | string | Yes | Human-readable description |
-| `framework` | string | Yes | `cloudflare`, `mastra`, `langchain`, or `openai` |
-| `endpoint` | string | Yes | HTTPS endpoint for A2A communication |
-| `capabilities` | string[] | Yes | Array of capability tags for discovery |
-| `auth` | object | Yes | Authentication configuration |
-| `runtime` | string | Yes | `static` or `dynamic` |
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 1: Infrastructure.
+
+## Your Mission
+Validate the Builder's implementation against acceptance criteria.
+
+## Validation Steps
+1. Read packages/db/schema.ts
+2. Verify D1-correct patterns (no native BOOLEAN/DATETIME)
+3. Check wrangler.jsonc R2 configuration
+4. Verify migration scripts are idempotent
+
+## Acceptance Criteria
+- [ ] All D1 tables created with proper indexes
+- [ ] Schema supports millions of agents
+- [ ] Capabilities efficiently queryable
+- [ ] Upvotes prevent duplicate voting per user
+- [ ] R2 bucket configured for agent tarballs
+- [ ] Migration scripts are idempotent
+
+## Rules
+1. Read and follow rule.md
+2. Update progress/01-infrastructure.md with result
+```
 
 ---
 
-## 2. ATM Registry App (Cloudflare)
+### Task 2: CLI Framework
 
-### 2.1 Architecture Overview
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 2: CLI Framework.
 
-The Registry is a Managed Infrastructure Provider deployed on Cloudflare Workers.
+## Your Mission
+Create the ATM CLI using oclif framework with atm init command and framework templates.
 
-### 2.2 Storage & Indexing
+## Required Files
 
-**D1 SQL Database:**
-- Stores the "Yellow Pages" - agent registry
-- Indexes millions of agents by: name, capability, upvote count
-- Schema supports high-volume reads and writes
+### 1. CLI Project Setup
+- packages/cli/ with oclif, TypeScript, ESLint
 
-**R2 Object Storage:**
-- Stores the "Agent Tarballs" - bundled JS code
-- Version-controlled storage for agent releases
-- Used by dynamic runtime for on-demand code loading
+### 2. atm init Command (packages/cli/src/commands/init.ts)
+Flags:
+- --name (required): @username/agent-name format
+- --template: cloudflare, mastra, langchain, openai (default: cloudflare)
+- --dynamic: boolean (default: false)
+- --dir: target directory
 
-### 2.3 Dynamic Execution Handler
+Behavior:
+1. Validate name format
+2. Create target directory
+3. Generate agent.json
+4. Copy template files
+5. If --dynamic, set runtime: "dynamic"
+6. Run npm install
 
-For agents marked with `runtime: "dynamic"`:
+### 3. README Generation
+Each template must generate README.md with:
+- Architecture section
+- Stack section
+- Contributing guide
 
-**Flow:**
-1. **Request**: A2A message hits `registry.apo.dev/call/@user/agent`
-2. **Loader**: Registry Worker pulls agent code from R2
-3. **Sandbox**: Executes in isolated V8 sandbox
-4. **Response**: Returns result and shuts down isolate (cost-optimized)
+## Acceptance Criteria
+- [ ] atm init creates valid project
+- [ ] agent.json passes validation
+- [ ] All 4 templates work
+- [ ] --dynamic flag sets runtime
+- [ ] Dependencies install
+- [ ] README.md has Architecture/Stack/Contributing
 
----
+## Rules
+1. Read and follow rule.md
+2. Update progress/02-cli-framework.md
+```
 
-## 3. Execution & Security Specification
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 2: CLI Framework.
 
-| Feature | Implementation |
-|---------|----------------|
-| **Authentication** | Mandatory JWT via `atm login`. No token = No publish. |
-| **DDoS Protection** | Cloudflare WAF + Rate Limiting per `agent_id` (not just IP) |
-| **Upvotes** | Recorded in D1. Only "Verified Agents" can upvote to prevent botting. |
-| **P2P A2A** | Hosted agents: Registry acts as DNS. Dynamic agents: Registry acts as Host. |
+## Your Mission
+Validate CLI implementation against acceptance criteria.
 
----
+## Validation
+1. Check init command handles all flags
+2. Verify all 4 templates exist and are valid
+3. Verify README generation has Architecture/Stack/Contributing
+4. Test npm install execution
 
-## 4. Local Development (Swarm Setup)
+## Acceptance Criteria
+- [ ] atm init creates valid project
+- [ ] agent.json passes validation
+- [ ] All 4 templates work
+- [ ] --dynamic flag sets runtime
+- [ ] Dependencies install
+- [ ] README.md has Architecture/Stack/Contributing
 
-### 4.1 Tmux Configuration
-
-The "Local Cloud" development environment:
-
-| Window | Purpose | Command |
-|--------|---------|---------|
-| Window 1 | Registry | `wrangler dev` (D1/R2 mock) |
-| Window 2 | CLI Dev | Test `atm init` and `atm publish` |
-| Window 3 | Tunnel | `cloudflared tunnel` for external A2A agents |
-| Window 4 | Multi-Agent Logs | Split-pane view of 3-4 agents interacting |
-
-### 4.2 Development Workflow
-
-1. Start local Registry with mock D1/R2
-2. Develop CLI commands against local Registry
-3. Use tunnel to test external agent communication
-4. Monitor multi-agent interactions in real-time
-
----
-
-## 5. Project Roadmap
-
-### Phase 1: Infrastructure Foundation
-- [ ] Design and implement D1 Schema for millions of agents
-- [ ] Implement R2 Upload logic for agent tarballs
-- [ ] Set up Registry Worker skeleton
-
-### Phase 2: CLI Development
-- [ ] Create CLI with oclif framework
-- [ ] Implement `atm init` command with templates
-- [ ] Build `agent.json` validation and generation
-
-### Phase 3: Dynamic Runtime
-- [ ] Implement Dynamic Worker Loading
-- [ ] Build V8 sandbox execution environment
-- [ ] Create cost-optimized isolate management
+## Rules
+1. Read and follow rule.md
+2. Update progress/02-cli-framework.md with result
+```
 
 ---
 
-## 6. Acceptance Criteria
+### Task 3: Registry Worker
+
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 3: Registry Worker.
+
+## Your Mission
+Build the Cloudflare Registry Worker with API endpoints, D1/R2 integration.
+
+## Required Skills
+Load: cloudflare, wrangler
+
+## Files to Create
+
+### packages/registry/src/
+- index.ts - Worker entry
+- router.ts - Hono router
+- handlers/register.ts - POST /agents
+- handlers/get.ts - GET /agents/:name
+- handlers/search.ts - GET /agents?capability=...
+- handlers/publish.ts - POST /agents/:name/publish (R2)
+- handlers/upvote.ts - POST /agents/:name/upvote
+- db/agents.ts - Agent CRUD
+- db/upvotes.ts - Upvote operations
+
+### API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /agents | Register agent |
+| GET | /agents/:name | Get agent |
+| GET | /agents | Search |
+| POST | /agents/:name/publish | Upload tarball |
+| POST | /agents/:name/upvote | Upvote |
+| DELETE | /agents/:name | Unregister |
+
+## Acceptance Criteria
+- [ ] All 6 API endpoints work
+- [ ] D1 queries with indexes
+- [ ] R2 upload/download works
+- [ ] Upvote prevents duplicates
+- [ ] Verified check on upvote
+- [ ] Proper JSON errors
+
+## Rules
+1. Read rule.md
+2. Update progress/03-registry-worker.md
+```
+
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 3: Registry Worker.
+
+## Validation
+1. Verify all 6 endpoints exist
+2. Check D1 indexes
+3. Verify R2 format: tarballs/{agent}/{version}.tar.gz
+4. Check duplicate vote prevention
+5. Verify verified check on upvote
+
+## Acceptance Criteria
+- [ ] All 6 API endpoints work
+- [ ] D1 queries with indexes
+- [ ] R2 upload/download works
+- [ ] Upvote prevents duplicates
+- [ ] Verified check on upvote
+- [ ] Proper JSON errors
+
+## Rules
+1. Read rule.md
+2. Update progress/03-registry-worker.md
+```
+
+---
+
+### Task 4: Dynamic Runtime
+
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 4: Dynamic Runtime.
+
+## Mission
+Implement V8 sandbox, isolate management, code loading from R2.
+
+## Required Skills
+Load: workers-best-practices, cloudflare
+
+## Files to Create
+
+### packages/registry/src/runtime/
+- loader.ts - Load code from R2 tarball
+- sandbox.ts - V8 execution with limits
+- isolate-manager.ts - Pool management
+- lifecycle.ts - Warmup/shutdown
+
+### packages/registry/src/handlers/call.ts
+Handle A2A calls to dynamic agents
+
+## Default Limits
+- 128MB memory
+- 1000ms CPU
+- 5000ms timeout
+
+## Acceptance Criteria
+- [ ] Code loads from R2
+- [ ] V8 sandbox isolates
+- [ ] Memory/CPU limits enforced
+- [ ] Timeout kills long runs
+- [ ] Isolate pool efficient
+- [ ] Hot path reuse
+
+## Rules
+1. Read rule.md
+2. Update progress/04-dynamic-runtime.md
+```
+
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 4: Dynamic Runtime.
+
+## Validation
+1. Verify R2 loader works
+2. Check V8 isolation (Worker class, not new Function)
+3. Verify memory/CPU enforcement
+4. Check timeout
+5. Verify pool management
+
+## Acceptance Criteria
+- [ ] Code loads from R2
+- [ ] V8 sandbox isolates
+- [ ] Memory/CPU limits enforced
+- [ ] Timeout kills long runs
+- [ ] Isolate pool efficient
+- [ ] Hot path reuse
+
+## Rules
+1. Read rule.md
+2. Update progress/04-dynamic-runtime.md
+```
+
+---
+
+### Task 5: Security System
+
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 5: Security System.
+
+## Mission
+Implement JWT auth, rate limiting, WAF, verified upvotes.
+
+## Required Skills
+Load: cloudflare, wrangler
+
+## Files
+
+### packages/registry/src/middleware/
+- auth.ts - JWT verify/generate, authMiddleware
+- rate-limit.ts - Rate limit by agent_id
+- verified-upvote.ts - Verified voter check
+
+### packages/cli/src/commands/login.ts
+atm login - stores JWT in ~/.atm/credentials
+
+### wrangler.jsonc
+Add WAF_ENABLED, KV for rate limiting
+
+## Rate Limits
+- read: 1000 req/min
+- write: 10 req/min
+- upvote: 10 votes/hour
+
+## Acceptance Criteria
+- [ ] JWT required for writes
+- [ ] Invalid JWT returns 401
+- [ ] Rate limit per agent_id
+- [ ] Rate headers in response
+- [ ] Only verified upvote
+- [ ] Non-verified 403
+- [ ] atm login works
+- [ ] CLI uses JWT
+
+## Rules
+1. Read rule.md
+2. Update progress/05-security.md
+```
+
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 5: Security System.
+
+## Validation
+1. Check JWT on POST /agents
+2. Verify rate limit uses agent_id not IP
+3. Verify verified check
+4. Test login command
+
+## Acceptance Criteria
+- [ ] JWT required for writes
+- [ ] Invalid JWT returns 401
+- [ ] Rate limit per agent_id
+- [ ] Rate headers in response
+- [ ] Only verified upvote
+- [ ] Non-verified 403
+- [ ] atm login works
+- [ ] CLI uses JWT
+
+## Rules
+1. Read rule.md
+2. Update progress/05-security.md
+```
+
+---
+
+### Task 6: Development Environment
+
+**Builder Prompt:**
+```
+You are the Builder Agent for Task 6: Dev Environment.
+
+## Mission
+Create Tmux swarm, dev scripts, tunnel config.
+
+## Files
+
+### scripts/swarm.sh
+4 windows:
+1. registry: wrangler dev --port 8787
+2. cli-dev: npm link && npm run watch
+3. tunnel: cloudflared tunnel --url http://localhost:8787
+4. logs: tail -f /tmp/agent{1,2,3}.log
+
+### scripts/dev.sh
+Check prerequisites, run swarm
+
+### .dev.vars
+JWT_SECRET, REGISTRY_URL, R2_BUCKET_NAME
+
+### docker-compose.yaml
+cloudflare/workers-local on 8787
+
+### docs/local-development.md
+Setup guide, troubleshooting
+
+### .gitignore
+Add .dev.vars
+
+## Acceptance Criteria
+- [ ] swarm.sh works
+- [ ] Registry at localhost:8787
+- [ ] Tunnel accessible
+- [ ] Logs window works
+- [ ] CLI rebuilds
+- [ ] Scripts executable
+
+## Rules
+1. Read rule.md
+2. Update progress/06-dev-environment.md
+```
+
+**Evaluator Prompt:**
+```
+You are the Evaluator Agent for Task 6: Dev Environment.
+
+## Validation
+1. Check scripts have shebang, are executable
+2. Verify 4 windows configured
+3. Check .dev.vars in .gitignore
+
+## Acceptance Criteria
+- [ ] swarm.sh works
+- [ ] Registry at localhost:8787
+- [ ] Tunnel accessible
+- [ ] Logs window works
+- [ ] CLI rebuilds
+- [ ] Scripts executable
+
+## Rules
+1. Read rule.md
+2. Update progress/06-dev-environment.md
+```
+
+---
+
+## Execution Order
+
+```
+Task 1 (Infrastructure)
+    │
+    ├─ Task 2 (CLI Framework) ──┐
+    └─ Task 3 (Registry Worker) ─┼─► Task 4 (Dynamic Runtime)
+                                  │
+                                  └─► Task 5 (Security)
+                                       │
+                                       └─► Task 6 (Dev Env)
+                                            │
+                                            └─► Human Review
+```
+
+---
+
+## Skills Reference
+
+| Task | Skills |
+|------|--------|
+| 1 | d1-drizzle-schema, wrangler |
+| 2 | - |
+| 3 | cloudflare, wrangler |
+| 4 | workers-best-practices, cloudflare |
+| 5 | cloudflare, wrangler |
+| 6 | wrangler |
+
+---
+
+## Acceptance Criteria Summary
 
 ### CLI
-- [ ] `atm init --name @user/agent --template cloudflare` creates valid project
-- [ ] `agent.json` is generated with all required fields
-- [ ] Templates produce framework-appropriate scaffold
+- atm init --name @user/agent creates project
+- agent.json with all fields
+- 4 templates work
+- README has Architecture/Stack/Contributing
 
 ### Registry
-- [ ] D1 stores and indexes agents by name, capability, upvotes
-- [ ] R2 stores versioned agent tarballs
-- [ ] Dynamic agents load and execute from R2
+- D1 stores/indexes agents
+- R2 stores tarballs
+- Dynamic agents load from R2
 
 ### Security
-- [ ] JWT authentication enforced on publish
-- [ ] Rate limiting prevents DDoS per agent_id
-- [ ] Only verified agents can upvote
+- JWT on publish
+- Rate limiting per agent_id
+- Verified upvote only
 
-### Development
-- [ ] Local Registry runs via `wrangler dev`
-- [ ] All 4 Tmux windows functional
-- [ ] External agents can communicate via tunnel
+### Dev
+- wrangler dev works
+- 4 Tmux windows
+- Tunnel for external agents
