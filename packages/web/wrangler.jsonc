@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "atm-web",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat_v2"],
+  "vars": {
+    "REGISTRY_URL": "https://atm-registry.agrit1408.workers.dev"
+  }
+}
